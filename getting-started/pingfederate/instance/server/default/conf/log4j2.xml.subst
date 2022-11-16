@@ -24,7 +24,7 @@
    |
    | monitorInterval - the number of seconds before Log4J2 detects changes to the configuration file and reconfigures itself.
  -->
-<Configuration monitorInterval="30" packages="com.pingidentity.log4j.pattern,com.pingidentity.log4j.layout,com.pingidentity.log4j.appender" shutdownHook="disable">
+<Configuration monitorInterval="30" packages="com.pingidentity.log4j.pattern,com.pingidentity.log4j.layout,com.pingidentity.log4j.appender" shutdownHook="disable" status="trace">
     <Appenders>
 
         <!-- ============================== -->
@@ -1173,6 +1173,40 @@
          destinationBindingName="topic/MyErrorsTopic"/>
         -->
 
+        <Kafka name="KafkaAdmin" topic="admin">
+            <PatternLayout>
+                <!-- Uncomment this if you want to use UTF-8 encoding instead
+                    of system's default encoding.
+                <charset>UTF-8</charset> -->
+                <pattern>%d | %X{user} | %X{roles} | %X{ip} | %X{component} | %X{event} | %X{eventdetailid} | %m%n</pattern>
+            </PatternLayout>
+            <Property name="bootstrap.servers">${CCLOUD_BOOTSTRAP_SERVER}</Property>
+            <Property name="security.protocol">SASL_SSL</Property>
+            <Property name="sasl.jaas.config">org.apache.kafka.common.security.plain.PlainLoginModule required username='${CCLOUD_API_KEY}' password='${CCLOUD_API_SECRET}';</Property>
+            <Property name="sasl.mechanism">PLAIN</Property>
+            <Property name="client.dns.lookup">use_all_dns_ips</Property>
+            <Property name="session.timeout.ms">45000</Property>
+            <Property name="acks">all</Property>
+            <Property name="batch.size">1</Property>
+        </Kafka>
+
+        <Kafka name="KafkaServer" topic="server">
+            <PatternLayout>
+                <!-- Uncomment this if you want to use UTF-8 encoding instead
+                    of system's default encoding.
+                <charset>UTF-8</charset> -->
+                <pattern>%d %X{trackingid} %-5p [%c] %m%n</pattern>
+            </PatternLayout>
+            <Property name="bootstrap.servers">${CCLOUD_BOOTSTRAP_SERVER}</Property>
+            <Property name="security.protocol">SASL_SSL</Property>
+            <Property name="sasl.jaas.config">org.apache.kafka.common.security.plain.PlainLoginModule required username='${CCLOUD_API_KEY}' password='${CCLOUD_API_SECRET}';</Property>
+            <Property name="sasl.mechanism">PLAIN</Property>
+            <Property name="client.dns.lookup">use_all_dns_ips</Property>
+            <Property name="session.timeout.ms">45000</Property>
+            <Property name="acks">all</Property>
+            <Property name="batch.size">1</Property>
+        </Kafka>
+
     </Appenders>
 
     <Loggers>
@@ -1180,6 +1214,10 @@
         <!-- ================ -->
         <!-- Limit categories -->
         <!-- ================ -->
+
+        <Logger name="org.apache.kafka" level="TRACE" additivity="false">
+            <AppenderRef ref="CONSOLE" />
+        </Logger>
 
         <Logger name="org.apache.http.wire" level="INFO" />
         <Logger name="com.pingidentity.pf.email" level="INFO" />
@@ -1415,6 +1453,7 @@
 
         <Logger name="AuditLogger" level="INFO" additivity="false" includeLocation="false">
             <appender-ref ref="AdminAudit" />
+            <appender-ref ref="KafkaAdmin" />
         </Logger>
 
         <Logger name="EventDetailAuditLogger" level="INFO" additivity="false" includeLocation="false">
@@ -1493,6 +1532,7 @@
         <AsyncRoot level="INFO" includeLocation="false">
             <!-- <AppenderRef ref="CONSOLE" /> -->
             <AppenderRef ref="FILE" />
+            <AppenderRef ref="KafkaServer" />
         </AsyncRoot>
 
         <!--
